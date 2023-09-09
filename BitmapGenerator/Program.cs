@@ -5,71 +5,57 @@ namespace BitmapGenerator
 {
     internal class Program
     {
+        static Random rnd = new Random();
+        static int seed = rnd.Next();
+        static int offsetX = rnd.Next(-1000, 1000);
+        static int offsetY = rnd.Next(-1000, 1000);
+        static int Chunk = 4;
         static void Main(string[] args)
         {
-            Random rnd = new Random();
-            int seed =
-                1597675681;
-                //rnd.Next();
-            int offsetX =
-                0;
-                //rnd.Next(-1000,1000);
-            int offsetY =
-                0;
-                //rnd.Next(-1000, 1000);
-            byte red = (byte)(seed % 256);
-            byte green = (byte)(seed/256 % 256);
-            byte blue = (byte)(seed/256/256 % 256);
+            int scale = 256;
 
-            Console.WriteLine("{0} {1} {2}\n{3}\n{4}\n{5}\n{6}", red, green, blue, seed, offsetX, offsetY, (int)Math.Log(seed / (red * green * blue + 1)));
-
-            const int chunkSize = 4;
-
-            var arr = new int[chunkSize + 1, chunkSize + 1];
+            var arr = new double[Chunk + 1, Chunk + 1];
 
             arr[0, 0] =
-                SeederInt(seed, offsetX, offsetY, 8);
-            arr[0, chunkSize] =
-                SeederInt(seed, offsetX, offsetY + chunkSize, 8);
-            arr[chunkSize, 0] =
-                SeederInt(seed, offsetX + chunkSize, offsetY, 8);
-            arr[chunkSize, chunkSize] =
-                SeederInt(seed, offsetX + chunkSize, offsetY + chunkSize, 8);
-
-            // дописать diamond-square алгоритм
+                Seeder(seed, offsetX, offsetY, scale);
+            arr[0, Chunk] =
+                Seeder(seed, offsetX, offsetY + Chunk, scale);
+            arr[Chunk, 0] =
+                Seeder(seed, offsetX + Chunk, offsetY, scale);
+            arr[Chunk, Chunk] =
+                Seeder(seed, offsetX + Chunk, offsetY + Chunk, scale);
 
             Console.WriteLine(
                 "\n{0} {1} {2} {3}\n\n",
                 arr[0, 0],
-                arr[0, chunkSize],
-                arr[chunkSize, 0],
-                arr[chunkSize, chunkSize]
+                arr[0, Chunk],
+                arr[Chunk, 0],
+                arr[Chunk, Chunk]
                 );
 
 
-            int len = chunkSize;
+            int len = Chunk;
+            double h = Math.Pow(2,-0.002);
             while (true)
             {
-                DiamondStep(ref arr, ref len);
-                Print(arr);
-                Console.WriteLine();
-                SquareStep(ref arr, ref len);
-                Print(arr);
-                Console.WriteLine();
+                DiamondStep(ref arr, ref len, ref h);
+                h *= h;
+                SquareStep(ref arr, ref len, ref h);
+                h *= h;
                 if (len<2)
                 break;
             }
 
-            var bitmap = new Bitmap(chunkSize, chunkSize);
+            var bitmap = new Bitmap(Chunk, Chunk);
 
-            for (int i = 0; i < chunkSize; i++) {
-                for (int j = 0; j < chunkSize; j++)
+            for (int i = 0; i < Chunk; i++) {
+                for (int j = 0; j < Chunk; j++)
                 {
-                   
+                    bitmap.SetPixel(i, j, Color.FromArgb((int)arr[i, j] * 256 / scale, (int)arr[i, j] * 256 / scale, (int)arr[i, j] * 256 / scale));
                 }
             }
 
-            var fileName = $@"bitmap_{seed}_{offsetX}_{offsetY}.png";
+            var fileName = $"generated/bitmap_{seed}_{offsetX}_{offsetY}.png";
 
             bitmap.Save(fileName, ImageFormat.Png);
         }
@@ -85,50 +71,46 @@ namespace BitmapGenerator
                 ));
             return result;
         }
-
-        static int SeederInt(int seed, int _x, int _y, int size)
-        {
-            return (int)Seeder(seed, _x, _y, size);
-        }
-
-        static void DiamondStep(ref int[,] arr, ref int len)
+        static void DiamondStep(ref double[,] arr, ref int len, ref double h)
         {
             for (int i = 0; i < arr.GetLength(0)-1; i += len)
             {
                 for (int j = 0; j < arr.GetLength(1)-1; j += len)
                 {
-                    int s =
+                    double s =
                         arr[i, j] +
                         arr[i + len, j] +
                         arr[i, j + len] +
                         arr[i + len, j + len];
-                    arr[i + len / 2, j + len / 2] = s / 4;
+                    arr[i + len / 2, j + len / 2] = s / 4 + Math.Sin(Math.Log(seed)) * h;
                 }    
             }
         }
 
-        static void SquareStep(ref int[,] arr, ref int len)
+        static void SquareStep(ref double[,] arr, ref int len, ref double h)
         {
             bool start = true;
-            int arrLength = arr.GetLength(0);
             len /= 2;
-            for (int i = 0; i < arr.GetLength(0) - 1; i += len)
+            for (int i = 0; i < arr.GetLength(0); i += len)
             {
-                for (int j = 0; j < arr.GetLength(1) - 1; j += len)
+                for (int j = 0; j < arr.GetLength(1); j += 2*len)
                 {
                     int b = (start) ? 0 : len;
-                    int s =
-                        ((IsValid(i, arrLength) && IsValid(j, arrLength)) ? arr[i, j] : -40) +
-                        ((IsValid(i + len, arrLength) && IsValid(j - len, arrLength)) ? arr[i, j - len] : -400) +
-                        ((IsValid(i + len, arrLength) && IsValid(j + len, arrLength)) ? arr[i, j + len] : -4000) +
-                        ((IsValid(i + 2 * len, arrLength) && IsValid(j, arrLength)) ? arr[i + 2 * len, j] : 0);
-                    arr[i + len, j] = s / 4;
-                    Console.WriteLine($"\t{i + len},{j - len}\n{i},{j}\t{arr[i + len, j]}\t{i + 2 * len},{j}\n\t{i + len},{j + len}\n\n");
+                    int k = j - b;
+                    double s =
+                        ((IsValid(i) && IsValid(k)) ? arr[i, k] : 0) +
+                        ((IsValid(i) && IsValid(k + 2 * len)) ? arr[i, k + 2 * len] : 0) +
+                        ((IsValid(i - len) && IsValid(k + len)) ? arr[i - len, k + len] : 0) +
+                        ((IsValid(i + len) && IsValid(k + len)) ? arr[i + len, k + len] : 0);
+                    if (IsValid(i) && IsValid(k + len))
+                    {
+                        arr[i, k + len] = s / 4 + Math.Cos(Math.Cbrt(seed)) * h;
+                    }
                 }
                 start = !start;
             }
-            Console.WriteLine();
         }
+
         static void Print(int[,] arr)
         {
             for (int i = 0; i < arr.GetLength(0); i++)
@@ -140,9 +122,9 @@ namespace BitmapGenerator
                 Console.WriteLine();
             }
         }
-        static bool IsValid(int index, int upperBound)
+        static bool IsValid(int index)
         {
-            return index < upperBound && index >= 0;
+            return index < Chunk + 1 && index >= 0;
         }
     }
 }
