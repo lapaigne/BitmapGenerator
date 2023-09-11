@@ -6,18 +6,19 @@ namespace BitmapGenerator
     internal class Program
     {
         static Random rnd = new Random();
-        static int Chunk = 128;
-        static int seed = 
-            1952742433;
-        //rnd.Next();
+        static int Chunk = 1024;
+        static int seed =
+            rnd.Next();
+            //755730920;
         static int offsetX =
-            -880;
-        //rnd.Next(-1000, 1000);
-        static int offsetY = -771 - Chunk;
-            //rnd.Next(-1000, 1000);
+            rnd.Next(-1000, 1000);
+            //357;
+        static int offsetY =
+            rnd.Next(-1000, 1000);
+            //584;
         static void Main(string[] args)
         {
-            int scale = 12;
+            int scale = 16;
 
             var arr = new double[Chunk + 1, Chunk + 1];
 
@@ -40,12 +41,12 @@ namespace BitmapGenerator
 
 
             int len = Chunk;
-            double h = Math.Pow(2, -0.14);
+            double h = Math.Pow(2, -0.014);
             while (true)
             {
                 DiamondStep(ref arr, ref len, ref h);
-                SquareStep(ref arr, ref len, ref h);
                 h *= h;
+                SquareStep(ref arr, ref len, ref h);
                 if (len < 2)
                 break;
             }
@@ -56,7 +57,7 @@ namespace BitmapGenerator
                 for (int j = 0; j < Chunk; j++)
                 {
                     int val = (int)arr[i, j];
-                    val = (val > 9) ? 9 : val;
+                    val = (val > 14) ? 14 : val;
                     val = (val < -2) ? -2 : val;
                     int red = 128;
                     int green = 0;
@@ -80,54 +81,63 @@ namespace BitmapGenerator
                             blue = 94;
                             break;
                         case 1:
+                        case 2:
                             red = 131;
                             green = 151;
                             blue = 71;
                             break;
-                        case 2:
+                        case 3:
+                        case 4:
                             red = 150;
                             green = 162;
                             blue = 77;
                             break;
-                        case 3:
+                        case 5:
                             red = 169;
                             green = 172;
                             blue = 82;
                             break;
-                        case 4:
+                        case 6:
+                        case 7:
                             red = 194;
                             green = 188;
                             blue = 95;
                             break;
-                        case 5:
+                        case 8:
+                        case 9:
                             red = 219;
                             green = 204;
                             blue = 108;
                             break;
-                        case 6:
+                        case 10:
                             red = 176;
                             green = 146;
                             blue = 80;
                             break;
-                        case 7:
+                        case 11:
                             red = 132;
                             green = 87;
                             blue = 51;
                             break;
-                        case 8:
+                        case 12:
                             red = 116;
                             green = 48;
                             blue = 37;
                             break;
-                        case 9:
+                        case 13:
+                            red = 176;
+                            green = 175;
+                            blue = 175;
+                            break;
+                        case 14:
                             red = 226;
                             green = 225;
                             blue = 225;
                             break;
-
                     }
 
                     bitmap.SetPixel(i, j, Color.FromArgb(red, green, blue));
+                    //bitmap.SetPixel(i, j, Color.FromArgb((val + 2)*255/scale, (val + 2)*255/scale, (val + 2)*255/scale));
                 }
             }
 
@@ -197,6 +207,10 @@ namespace BitmapGenerator
                 }
                 Console.WriteLine();
             }
+        }
+        static void GenerateChunk(ref float[,] arr, int seed )
+        {
+
         }
         static bool IsValid(int index)
         {
